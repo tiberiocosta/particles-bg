@@ -24,9 +24,13 @@
 </head>
 <body>
   <div id="particles-bg"></div>
+
+  <!-- PRIMEIRO: Carrega a biblioteca Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+
+  <!-- DEPOIS: Executa o efeito (após o Three.js já estar carregado) -->
   <script>
-    (function() {
+    window.onload = function() {
       var container = document.getElementById('particles-bg');
       var renderer = new THREE.WebGLRenderer({ alpha: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -96,7 +100,8 @@
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
       });
-    })();
+    };
   </script>
 </body>
 </html>
+  
