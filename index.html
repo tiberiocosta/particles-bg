@@ -5,8 +5,12 @@
   <title>GPGPU Particles — Three.js (Ykob)</title>
   <style>
     html, body {
-      margin: 0; padding: 0; overflow: hidden;
-      width: 100vw; height: 100vh; background: #17142a;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      background: #17142a;
     }
     body { position: relative; }
     #container {
@@ -24,10 +28,10 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.87.1/build/three.min.js"></script>
   <!-- OrbitControls -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.87.1/examples/js/controls/OrbitControls.js"></script>
-  <!-- GPUComputationRenderer -->
+  <!-- GPUComputationRenderer.js (r87) -->
   <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r87/examples/js/GPUComputationRenderer.js"></script>
 
-  <!-- === Shaders do CodePen (igual ao Ykob) === -->
+  <!-- === Shaders do CodePen (Ykob) === -->
   <script id="velocityFragmentShader" type="x-shader/x-fragment">
     uniform sampler2D texturePosition;
     uniform sampler2D textureVelocity;
@@ -81,17 +85,17 @@
     }
   </script>
 
-  <!-- === Código JS principal (adaptado do CodePen) === -->
+  <!-- === Código JS principal (do CodePen/Ykob) === -->
   <script>
     // Adaptação do https://codepen.io/ykob/pen/WpNxaR
     var container = document.getElementById('container');
     var width = window.innerWidth;
     var height = window.innerHeight;
-    var PARTICLE_RES = 128; // 128 x 128 = 16.384 partículas (ajuste aqui!)
+    var PARTICLE_RES = 128; // 128 x 128 = 16.384 partículas
     var PARTICLE_NUM = PARTICLE_RES * PARTICLE_RES;
 
     var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setClearColor(0x17142a, 1); // igual fundo
+    renderer.setClearColor(0x17142a, 1);
     renderer.setSize(width, height);
     container.appendChild(renderer.domElement);
 
