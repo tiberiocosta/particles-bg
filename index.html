@@ -2,70 +2,136 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Partículas Three.js</title>
+  <title>ykob Particle Clone</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    html, body {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      overflow: hidden;
-      background: #000;
+    html, body { width:100%; height:100%; margin:0; background:#000; overflow:hidden; }
+    body { font-family: 'Montserrat', Arial, sans-serif; }
+    #container { width:100vw; height:100vh; }
+    .overlay {
+      position:fixed; left:0; top:0; z-index:2; color:#fff; padding:1.5em; font-size:1.1em;
+      pointer-events: none;
+      user-select: none;
+      font-family: 'Montserrat', Arial, sans-serif;
     }
-    #container {
-      width: 100vw;
-      height: 100vh;
-      touch-action: none;
-      position: fixed;
-      top: 0; left: 0;
-    }
+    .overlay h1 { font-size:3em; letter-spacing:0.02em; font-weight:700; margin:0 0 1.2em 0; }
   </style>
 </head>
 <body>
   <div id="container"></div>
-  <!-- Importa a biblioteca Three.js via CDN -->
+  <div class="overlay">
+    <b>particle</b>
+    <br>random walk with Classic noise functions.
+  </div>
   <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/simplex-noise@4.0.1/simplex-noise.js"></script>
+  <script id="vertexShader" type="x-shader/x-vertex">
+    attribute float size;
+    attribute vec3 customColor;
+    varying vec3 vColor;
+    uniform float uTime;
+    uniform float uSpeed;
+    uniform float uAmplitude;
+    uniform float uFreq;
+
+    float rand(float n){return fract(sin(n) * 43758.5453123);}
+    float noise(vec3 p) {
+      return fract(sin(dot(p, vec3(12.9898,78.233,24.654)))* 43758.5453);
+    }
+    void main() {
+      vColor = customColor;
+      // Add classic noise to particle position for that floating effect
+      vec3 pos = position;
+      float t = uTime * uSpeed;
+      pos.x += sin(t + pos.y * uFreq) * uAmplitude;
+      pos.y += cos(t + pos.x * uFreq) * uAmplitude;
+      pos.z += sin(t + pos.x * 0.3 + pos.y * 0.5) * (uAmplitude * 0.5);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+      gl_PointSize = size * (300.0 / length(gl_Position.xyz));
+    }
+  </script>
+  <script id="fragmentShader" type="x-shader/x-fragment">
+    varying vec3 vColor;
+    void main() {
+      float d = length(gl_PointCoord - vec2(0.5));
+      float alpha = smoothstep(0.5, 0.2, d); // Fade edge for soft particles
+      gl_FragColor = vec4(vColor, alpha * 0.55); // transparency
+    }
+  </script>
   <script>
-    // Código das partículas aqui!
+    // CONFIG
+    const PARTICLES = 8000;
+    const SPREAD = 250;
+
+    // SETUP THREE
     const container = document.getElementById('container');
     const scene = new THREE.Scene();
-
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 1, 1000);
-    camera.position.z = 200;
-
-    const renderer = new THREE.WebGLRenderer({antialias:true});
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 1, 1000);
+    camera.position.z = 340;
+    const renderer = new THREE.WebGLRenderer({alpha:false, preserveDrawingBuffer:true});
     renderer.setClearColor(0x000000, 1);
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
 
-    const PARTICLE_COUNT = 2000;
+    // ATTRIBUTES
     const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(PARTICLE_COUNT * 3);
+    const positions = new Float32Array(PARTICLES * 3);
+    const colors = new Float32Array(PARTICLES * 3);
+    const sizes = new Float32Array(PARTICLES);
 
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      positions[i*3+0] = (Math.random() - 0.5) * 400;
-      positions[i*3+1] = (Math.random() - 0.5) * 400;
-      positions[i*3+2] = (Math.random() - 0.5) * 400;
+    // Rainbow colors for particles (like ykob)
+    function hsv2rgb(h, s, v) {
+      let f = (n, k = (n + h/60)%6) => v - v*s*Math.max(Math.min(k,4-k,1),0);
+      return [f(5), f(3), f(1)];
+    }
+
+    for (let i = 0; i < PARTICLES; i++) {
+      const ix = i * 3;
+      positions[ix + 0] = (Math.random() - 0.5) * SPREAD * 2;
+      positions[ix + 1] = (Math.random() - 0.5) * SPREAD * 2;
+      positions[ix + 2] = (Math.random() - 0.5) * SPREAD * 2;
+      // rainbow hue across all particles, mixed with blue-purple
+      const hue = 200 + (i / PARTICLES) * 120; // blue to purple range
+      const rgb = hsv2rgb(hue, 0.6, 1.0);
+      colors[ix + 0] = rgb[0];
+      colors[ix + 1] = rgb[1];
+      colors[ix + 2] = rgb[2];
+      sizes[i] = Math.random() * 2.2 + 0.4;
     }
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('customColor', new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
-    const material = new THREE.PointsMaterial({
-      color: 0xffffff,
-      size: 2,
+    // MATERIAL with SHADERS
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uSpeed: { value: 0.4 },
+        uAmplitude: { value: 12.0 },
+        uFreq: { value: 0.15 }
+      },
+      vertexShader: document.getElementById('vertexShader').textContent,
+      fragmentShader: document.getElementById('fragmentShader').textContent,
       transparent: true,
-      opacity: 0.7
+      depthTest: false,
+      blending: THREE.AdditiveBlending
     });
 
-    const points = new THREE.Points(geometry, material);
-    scene.add(points);
+    // PARTICLE SYSTEM
+    const particleSystem = new THREE.Points(geometry, material);
+    scene.add(particleSystem);
 
+    // ANIMATE
+    let clock = new THREE.Clock();
     function animate() {
-      requestAnimationFrame(animate);
-
-      points.rotation.x += 0.001;
-      points.rotation.y += 0.002;
-
+      // Desenhar fundo preto semi-transparente para rastro brilhante!
+      renderer.setClearColor(0x000000, 0.09); // NÃO 1!
+      renderer.clear();
+      material.uniforms.uTime.value = clock.getElapsedTime();
+      particleSystem.rotation.y += 0.0007;
+      particleSystem.rotation.x += 0.0002;
       renderer.render(scene, camera);
+      requestAnimationFrame(animate);
     }
     animate();
 
