@@ -16,23 +16,19 @@
 <body>
   <div id="container"></div>
 
-  <!-- THREE.js r87 e libs originais do projeto Ykob -->
+  <!-- Three.js r87 e libs -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.87.1/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.87.1/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r87/examples/js/GPUComputationRenderer.js"></script>
 
   <script>
-    // ========== CONSTANTES DO EXEMPLO ==========
-
+    // === CONFIG ===
     var PARTICLE_SIZE = 2.0;
-    var WIDTH = 128; // 128x128 = 16384 partículas
+    var WIDTH = 128;
     var PARTICLES = WIDTH * WIDTH;
-
     var container, camera, scene, renderer, controls;
-    var gpuCompute;
-    var velocityVariable, positionVariable;
-    var positionUniforms, velocityUniforms;
-    var particleUniforms;
+    var gpuCompute, velocityVariable, positionVariable;
+    var positionUniforms, velocityUniforms, particleUniforms;
     var effectController = { separation: 40.0, alignment: 30.0, cohesion: 30.0, freedom: 0.75, predator: false };
 
     init();
@@ -51,10 +47,9 @@
 
       controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-      // GPUComputationRenderer Setup
       gpuCompute = new GPUComputationRenderer(WIDTH, WIDTH, renderer);
 
-      if(renderer.capabilities.isWebGL2 === false && !renderer.extensions.get('OES_texture_float')) {
+      if (renderer.capabilities.isWebGL2 === false && !renderer.extensions.get('OES_texture_float')) {
         alert('O seu navegador não suporta WebGL Float Textures! Tente outro navegador.');
         return;
       }
@@ -197,7 +192,7 @@
     // ========== SHADERS ==========
 
     function velocityShader() {
-      // Exatamente igual ao do Ykob — SEM variáveis duplicadas!
+      // Shader de velocidade (fragment) — sem varying
       return `
         uniform float time;
         uniform float delta;
@@ -207,42 +202,38 @@
         uniform float freedomFactor;
         uniform sampler2D texturePosition;
         uniform sampler2D textureVelocity;
-        varying vec2 vUv;
-
         void main() {
-          vUv = gl_FragCoord.xy / resolution.xy;
-          vec4 tmpPos = texture2D(texturePosition, vUv);
-          vec3 pos = tmpPos.xyz;
-          vec3 vel = texture2D(textureVelocity, vUv).xyz;
+          vec2 uv = gl_FragCoord.xy / resolution.xy;
+          vec3 pos = texture2D(texturePosition, uv).xyz;
+          vec3 vel = texture2D(textureVelocity, uv).xyz;
           vel += vec3(
             (fract(sin(dot(pos.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.5,
             (fract(sin(dot(pos.yz, vec2(93.9898, 67.345))) * 23758.5453) - 0.5) * 0.5,
             (fract(sin(dot(pos.zx, vec2(56.7213, 12.9898))) * 53758.5453) - 0.5) * 0.5
           ) * delta * freedomFactor;
-
           gl_FragColor = vec4(vel, 1.0);
         }
       `;
     }
 
     function positionShader() {
+      // Shader de posição (fragment) — sem varying
       return `
         uniform float time;
         uniform float delta;
         uniform sampler2D texturePosition;
         uniform sampler2D textureVelocity;
-        varying vec2 vUv;
-
         void main() {
-          vUv = gl_FragCoord.xy / resolution.xy;
-          vec3 pos = texture2D(texturePosition, vUv).xyz;
-          vec3 vel = texture2D(textureVelocity, vUv).xyz;
+          vec2 uv = gl_FragCoord.xy / resolution.xy;
+          vec3 pos = texture2D(texturePosition, uv).xyz;
+          vec3 vel = texture2D(textureVelocity, uv).xyz;
           gl_FragColor = vec4(pos + vel * delta, 1.0);
         }
       `;
     }
 
     function particleVertexShader() {
+      // Vertex shader dos pontos
       return `
         uniform sampler2D texturePosition;
         uniform sampler2D textureVelocity;
@@ -263,6 +254,7 @@
     }
 
     function particleFragmentShader() {
+      // Fragment shader dos pontos
       return `
         uniform sampler2D map;
         varying vec4 vColor;
