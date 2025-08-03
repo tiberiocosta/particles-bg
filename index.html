@@ -90,7 +90,6 @@
     uniform float time;
     uniform vec2 vTouchMove;
     varying vec2 vUv;
-    // --- Perlin Noise GLSL (by Stefan Gustavson) ---
     vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
     vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
     vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
@@ -410,7 +409,8 @@ class Points {
     });
     this.uniforms.velocity.value = this.physicsRenderer.getCurrentVelocity();
     this.uniforms.acceleration.value = this.physicsRenderer.getCurrentAcceleration();
-    geometry.addAttribute('uvVelocity', this.physicsRenderer.getBufferAttributeUv());
+    // LINHA CORRIGIDA ABAIXO:
+    geometry.setAttribute('uvVelocity', this.physicsRenderer.getBufferAttributeUv());
     return new THREE.Points(
       geometry,
       new THREE.RawShaderMaterial({
@@ -495,16 +495,9 @@ let isDrag = false;
 
 const consoleSignature = new ConsoleSignature();
 
-//
-// process for this sketch.
-//
-
 const points = new Points();
 points.init(renderer);
 
-//
-// common process
-//
 const resizeWindow = () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
